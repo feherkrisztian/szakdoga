@@ -17,43 +17,19 @@ JNIEXPORT void JNICALL Java_model_Model_load_1model
 
 /*
  * Class:     model_Model
- * Method:    getStateLength
- * Signature: ()I
+ * Method:    get_initial_state
+ * Signature: (J)[I
  */
-JNIEXPORT jint JNICALL Java_model_Model_getStateLength
-  (JNIEnv *, jobject);
+JNIEXPORT jintArray JNICALL Java_model_Model_get_1initial_1state
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     model_Model
- * Method:    getInitialState
- * Signature: ()[I
+ * Method:    get_next_state
+ * Signature: (JI[I)I
  */
-JNIEXPORT jintArray JNICALL Java_model_Model_getInitialState
-  (JNIEnv *, jobject);
-
-/*
- * Class:     model_Model
- * Method:    getNumberOfTransitions
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_model_Model_getNumberOfTransitions
-  (JNIEnv *, jobject);
-
-/*
- * Class:     model_Model
- * Method:    getDM
- * Signature: ()[[I
- */
-JNIEXPORT jobjectArray JNICALL Java_model_Model_getDM
-  (JNIEnv *, jobject);
-
-/*
- * Class:     model_Model
- * Method:    getNextState
- * Signature: ([I)V
- */
-JNIEXPORT void JNICALL Java_model_Model_getNextState
-  (JNIEnv *, jobject, jintArray);
+JNIEXPORT jint JNICALL Java_model_Model_get_1next_1state
+  (JNIEnv *, jobject, jlong, jint, jintArray);
 
 #ifdef __cplusplus
 }

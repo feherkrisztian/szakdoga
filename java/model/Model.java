@@ -6,21 +6,49 @@ public class Model {
 	   System.loadLibrary("pinswrapper");
     }
 
+    private String modelPath;
+    private long model_t_ptr;
+    private int stateLength;
+    private int numOfTransitions;
+    private int[][] dependencyMatrix;
+
     private native void load_model(String modelPath);
-    public native int getStateLength();
-    public native int[] getInitialState();
-    public native int getNumberOfTransitions();
-    public native int[][] getDM();
-    public native void getNextState(int[] state);
+    private native int[] get_initial_state(long model_t_ptr);
+    private native int get_next_state(long model_t_ptr, int transition, int[] state);
 
     public Model(String modelPath){
-	   load_model(modelPath);
+        this.modelPath = modelPath;
+	    load_model(modelPath);
+        /*System.out.println(model_t_ptr);
+        System.out.println("length: " + stateLength);
+        System.out.println("number of transitions: " + numOfTransitions);*/
+        for (int[] ia : dependencyMatrix) {
+            for (int e : ia) {
+                System.out.print(e);                
+            }
+            System.out.println();
+        }
     }
 
-    private void next_state(int[] state){
-        for (int e : state) {
-            System.out.print(e + " ");
-        }
-        System.out.println("");
+    public int getStateLength(){
+        return stateLength;
+    }
+
+    public int getNumOfTransitions(){
+        return numOfTransitions;
+    }
+
+    public int[] getInitialState(){
+        return get_initial_state(model_t_ptr);
+    }
+
+    public int getNextState(int transition, int[] state){
+        return get_next_state(model_t_ptr, transition, state);
+    }
+
+    private void nextState(int[] nextState){
+        /*for (int e : nextState) {
+            System.out.print(e);
+        }*/
     }
 }

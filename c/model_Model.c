@@ -6,101 +6,105 @@
 #include "modelloader.h"
 #include "pins/pins.h"
 
-static struct
-{
-	lts_type_t ltstype;
-	model_t model_t;
-	int N; // length of the state vector
-	int K; // number of transitions
-} model;
-
 JNIEXPORT void JNICALL Java_model_Model_load_1model(JNIEnv *env, jobject thisObj, jstring path) {
-  char* params[2];
-  params[0] = "pinswrapper";
-  params[1] = (*env)->GetStringUTFChars(env, path, NULL);
+  	char* params[2];
+  	params[0] = "pinswrapper";
+  	params[1] = (*env)->GetStringUTFChars(env, path, NULL);
 
-  printf("Loading model from %s \n", params[1]);
+  	printf("Loading model from %s \n", params[1]);
 
-  model.model_t = getModel(params);
-  model.ltstype = GBgetLTStype(model.model_t);
-  model.N = lts_type_get_state_length(model.ltstype);
-  model.K = dm_nrows(GBgetDMInfo(model.model_t));
+  	model_t model = getModel(params);
+  	lts_type_t ltstype = GBgetLTStype(model);
+  	int N = (jint)lts_type_get_state_length(ltstype);
+  	int K = (jint)dm_nrows(GBgetDMInfo(model));
+  	
+  	matrix_t* m = GBgetDMInfo(model);
+	jclass intClass = (*env)->FindClass(env, "[I");
+	jobjectArray DM = (*env)->NewObjectArray(env, K, intClass, NULL);
+	for (int i = 0; i < K; i++) {
+		int DMStateDep[N];
+		for (int j = 0; j < N; j++) {
+            DMStateDep[j] = dm_is_set(m, i, j);
+        }
+        jintArray stateDep = (*env)->NewIntArray(env, N);
+        (*env)->SetIntArrayRegion(env, stateDep, 0, N, DMStateDep);
+        (*env)->SetObjectArrayElement(env, DM, i, stateDep);
+        (*env)->DeleteLocalRef(env, stateDep);
+	}
 
-  printf("Model loaded\n\n");
+	jclass cls = (*env)->GetObjectClass(env, thisObj);
+    jfieldID model_t_fid = (*env)->GetFieldID(env, cls, "model_t_ptr", "J");
+    jfieldID state_length_fid = (*env)->GetFieldID(env, cls, "stateLength", "I");
+    jfieldID num_of_transtions_fid = (*env)->GetFieldID(env, cls, "numOfTransitions", "I");
+    jfieldID dependency_matrix_fid = (*env)->GetFieldID(env, cls, "dependencyMatrix", "[[I");
+    (*env)->SetLongField(env, thisObj, model_t_fid, (jlong)model);
+    (*env)->SetIntField(env, thisObj, state_length_fid, (jint)N);
+    (*env)->SetIntField(env, thisObj, num_of_transtions_fid, (jint)K);
+    (*env)->SetObjectField(env, thisObj, dependency_matrix_fid, DM);
+
+  	printf("Model loaded\n\n");
 }
 
-JNIEXPORT jint JNICALL Java_model_Model_getStateLength(JNIEnv * env, jobject thisObj){
-  	return model.N;
-}
+JNIEXPORT jintArray JNICALL Java_model_Model_get_1initial_1state
+		(JNIEnv * env, jobject thisObj, jlong model_t_ptr){
 
+    model_t model = (model_t)model_t_ptr;
+  	lts_type_t ltstype = GBgetLTStype(model);
+  	int N = lts_type_get_state_length(ltstype);
 
-JNIEXPORT jint JNICALL Java_model_Model_getNumberOfTransitions(JNIEnv * env, jobject thisObj){
-	return model.K;
-}
+	int GB_initial_state[N];
+	GBgetInitialState(model, GB_initial_state);
 
-JNIEXPORT jintArray JNICALL Java_model_Model_getInitialState(JNIEnv * env, jobject thisObj){
-	int GB_initial_state[model.N];
-	GBgetInitialState(model.model_t, GB_initial_state);
-
-	jintArray initial_state = (jintArray)(*env)->NewIntArray(env, model.N);
+	jintArray initial_state = (jintArray)(*env)->NewIntArray(env, N);
 	if(initial_state == NULL) {
     	return NULL;
   	}
-	jint *int_ptr = calloc(model.N, sizeof(jint));
+	jint *int_ptr = calloc(N, sizeof(jint));
 	if(int_ptr == NULL) {
 		return NULL;
 	}
-	for(int i=0; i < model.N; i++) {
+	for(int i=0; i < N; i++) {
 	    int_ptr[i] = GB_initial_state[i];
 	}
 
-	(*env)->SetIntArrayRegion(env,initial_state,0,model.N,(jint*) int_ptr);
+	(*env)->SetIntArrayRegion(env,initial_state,0,N,(jint*) int_ptr);
  
 	free(int_ptr);
 
 	return initial_state;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_model_Model_getDM(JNIEnv * env, jobject thisObj){
-	matrix_t* m = GBgetDMInfo(model.model_t);
+void cb(int N, transition_info_t *ti, int *dst, int *cpy){
+	printstate(dst, N);
+	/*jintArray state = (*context.env)->NewIntArray(context.env, context.N);
+    (*context.env)->SetIntArrayRegion(context.env, state, 0, context.N, dst);
 
-	jclass intClass = (*env)->FindClass(env, "[I");
-	jobjectArray transitions = (*env)->NewObjectArray(env, model.K, intClass, env);
+    jclass cls = (*context.env)->GetObjectClass(context.env, context.this);
+    printf("%d\n", cls);
 
-	for (int i = 0; i < model.K; i++) {
-		int DMStateDep[model.N];
-		for (int j = 0; j < model.N; j++) {
-            DMStateDep[j] = dm_is_set(m, i, j);
-        }
-        printf("\n");
-        jintArray stateDep = (*env)->NewIntArray(env, model.N);
-        (*env)->SetIntArrayRegion(env, stateDep, 0, model.N, DMStateDep);
-        (*env)->SetObjectArrayElement(env, transitions, i, stateDep);
-        (*env)->DeleteLocalRef(env, stateDep);
-	}
+    jmethodID mid = (*context.env)->GetMethodID(context.env, cls, "next_state", "(I)V");
 
-    return transitions;
+    if (mid == 0) {
+        return;
+    }
+	(*context.env)->CallVoidMethod(context.env, context.this, mid, 1);*/
 }
 
-static void cb(JNIEnv * env, transition_info_t *ti, int *dst, int *cpy){
-	(*env)->CallVoidMethod(env, )
+JNIEXPORT jint JNICALL Java_model_Model_get_1next_1state
+  	(JNIEnv *env, jobject thisObj, jlong model_t_ptr, jint transition, jintArray jstate){
+  	int N = (*env)->GetArrayLength(env, jstate);
+  	int* state = (*env)->GetIntArrayElements(env, jstate, 0);
+	int c = GBgetTransitionsLong((model_t)model_t_ptr, transition, state, cb, N);
+
+  	return c;
 }
 
-JNIEXPORT void JNICALL Java_model_Model_getNextState(JNIEnv * env, jobject thisObj, jintArray jstate){
-  jsize len = (*env)->GetArrayLength(env, jstate);
-  jint *state = (*env)->GetIntArrayElements(env, jstate, 0);
-  for (int i = 0; i < model.K; ++i)
-  {
-	int c = GBgetTransitionsLong(model.model_t, i, state, cb, NULL);
-	printf("c = %d\n", c);
-  }
-  printstate(state);
-}
 
-void printstate(int* state){
-	for (int i = 0; i < model.N; ++i)
+void printstate(int* state,int N){
+	printf("next_state:");
+	for (int i = 0; i < N; ++i)
 	{
-		printf("%d\n", state[i]);
+		printf("%d", state[i]);
 	}
 }
 
