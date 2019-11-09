@@ -6,6 +6,12 @@
 #include "modelloader.h"
 #include "pins/pins.h"
 
+typedef struct NextStateCtx {
+	JNIEnv *env;
+	jobject thisObj;
+	int N;
+} NextStateCtx;
+
 JNIEXPORT void JNICALL Java_model_Model_load_1model(JNIEnv *env, jobject thisObj, jstring path) {
   	char* params[2];
   	params[0] = "pinswrapper";
@@ -74,37 +80,40 @@ JNIEXPORT jintArray JNICALL Java_model_Model_get_1initial_1state
 	return initial_state;
 }
 
-void cb(int N, transition_info_t *ti, int *dst, int *cpy){
-	printstate(dst, N);
-	/*jintArray state = (*context.env)->NewIntArray(context.env, context.N);
-    (*context.env)->SetIntArrayRegion(context.env, state, 0, context.N, dst);
+void cb(NextStateCtx* ctx, transition_info_t *ti, int *dst, int *cpy){
 
-    jclass cls = (*context.env)->GetObjectClass(context.env, context.this);
-    printf("%d\n", cls);
+	jintArray state = (*ctx->env)->NewIntArray(ctx->env, ctx->N);
+    (*ctx->env)->SetIntArrayRegion(ctx->env, state, 0, ctx->N, dst);
 
-    jmethodID mid = (*context.env)->GetMethodID(context.env, cls, "next_state", "(I)V");
+    jclass cls = (*ctx->env)->GetObjectClass(ctx->env, ctx->thisObj);
+    jmethodID mid = (*ctx->env)->GetMethodID(ctx->env, cls, "nextState", "([I)V");
 
     if (mid == 0) {
         return;
     }
-	(*context.env)->CallVoidMethod(context.env, context.this, mid, 1);*/
+    
+	(*ctx->env)->CallVoidMethod(ctx->env, ctx->thisObj, mid, state);
 }
 
 JNIEXPORT jint JNICALL Java_model_Model_get_1next_1state
   	(JNIEnv *env, jobject thisObj, jlong model_t_ptr, jint transition, jintArray jstate){
+
   	int N = (*env)->GetArrayLength(env, jstate);
   	int* state = (*env)->GetIntArrayElements(env, jstate, 0);
-	int c = GBgetTransitionsLong((model_t)model_t_ptr, transition, state, cb, N);
 
+  	NextStateCtx ctx = {env, thisObj, N};
+	int c = GBgetTransitionsLong((model_t)model_t_ptr, transition, state, cb, &ctx);
   	return c;
 }
 
 
-void printstate(int* state,int N){
-	printf("next_state:");
+/*void printstate(int* state,int N){
+	printf("-----------\n");
+	printf("next state:\n");
 	for (int i = 0; i < N; ++i)
 	{
 		printf("%d", state[i]);
 	}
-}
+	printf("\n-----------\n");
+}*/
 

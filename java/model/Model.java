@@ -47,8 +47,10 @@ public class Model {
     }
 
     private void nextState(int[] nextState){
-        /*for (int e : nextState) {
+        System.out.print("\nnext state: ");
+        for (int e : nextState) {
             System.out.print(e);
-        }*/
+        }
+        System.out.print("\nreturns ");
     }
 }
