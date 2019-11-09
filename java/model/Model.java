@@ -19,15 +19,10 @@ public class Model {
     public Model(String modelPath){
         this.modelPath = modelPath;
 	    load_model(modelPath);
-        /*System.out.println(model_t_ptr);
-        System.out.println("length: " + stateLength);
-        System.out.println("number of transitions: " + numOfTransitions);*/
-        for (int[] ia : dependencyMatrix) {
-            for (int e : ia) {
-                System.out.print(e);                
-            }
-            System.out.println();
-        }
+    }
+
+    public int[][] getDependencyMatrix(){
+        return dependencyMatrix;
     }
 
     public int getStateLength(){
@@ -47,10 +42,9 @@ public class Model {
     }
 
     private void nextState(int[] nextState){
-        System.out.print("\nnext state: ");
+        System.out.print("next state: ");
         for (int e : nextState) {
             System.out.print(e);
         }
-        System.out.print("\nreturns ");
     }
 }
