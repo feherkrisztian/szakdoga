@@ -1,0 +1,17 @@
+------- modelloader.so --------
+1. configure az ltsmin gyökérben
+2. make az ltsmin gyökérben
+3. /src/pins2lts-seq make (ha változtatás volt)
+4. modelloader linkelése az ltsmin/src/pins2lts-seq mappában:
+	g++ -std=gnu++11 -g -O2 -W -Wall -pipe -Wl,-E -shared -o libpins2jni.so modelloader-modelloader.o ../pins-lib/modules/modelloader-dlopen-pins.o ../pins-lib/modules/modelloader-etf-pins.o ../pins-lib/modules/modelloader-dve-pins.o ../pins-lib/modules/modelloader-prom-pins.o ../pins-lib/modules/modelloader-pnml-pins.o  -lxml2 ../andl-lib/.libs/libandl.a ../pins-lib/.libs/libpins.a -lltdl ../vset-lib/.libs/libvset.a -lz ../mc-lib/.libs/libmc.a ../../lib/.libs/libgnu.a -lrt -lm -lpopt -pthread
+
+-------- pinswrapper ---------
+
+1. java home beállítása:
+	export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-1.el7_7.x86_64/
+2. java fájlok fordítása és .h generálása a natív könyvtárhoz:
+	javac -h c -d target java/model/*.java
+3. natív knyvtár fordítása és linkelése:
+	gcc -std=c99 -fPIC -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" -Llibs -Wl,-rpath=./libs -shared -o libs/libpinswrapper.so c/model_Model.c -lmodelloader
+4. eszköz futtatása: 
+	java -Djava.library.path=./libs -cp target model.Application
