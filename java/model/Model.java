@@ -11,6 +11,8 @@ public class Model {
     private int stateLength;
     private int numOfTransitions;
     private int[][] dependencyMatrix;
+    private int[] nextState;
+
 
     private native void load_model(String modelPath);
     private native int[] get_initial_state(long model_t_ptr);
@@ -41,10 +43,19 @@ public class Model {
         return get_next_state(model_t_ptr, transition, state);
     }
 
+    public int[] getNextStateResult(){
+        return nextState;
+    }
+
     private void nextState(int[] nextState){
-        System.out.print("next state: ");
-        for (int e : nextState) {
+        // ez a callback nem is muszáj,
+        // rögtön lehetne natívan a változónak értéket adni
+        // de hátha kell valamire
+
+        this.nextState = nextState;
+
+        /*for (int e : nextState) {
             System.out.print(e);
-        }
+        }*/
     }
 }
